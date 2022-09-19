@@ -1,11 +1,7 @@
 use std::io;
-use regex::{Captures, Regex};
-use lazy_static::lazy_static;
 
-#[derive(Debug)]
-enum TemperatureUnit {
-    F, C
-}
+use lazy_static::lazy_static;
+use regex::{Captures, Regex};
 
 fn main() {
     println!("Hi. This tool converts Fahrenheit to Celsius and vice versa. Please enter the temperature followed by its unit (e.g. 69f or -30c):");
@@ -21,21 +17,21 @@ fn main() {
 
         match parse_input(&temperature) {
             Ok(res) => {
-                break res
-            },
+                break res;
+            }
             Err(err) => {
                 println!("{}", err);
-                continue
+                continue;
             }
         };
     };
 
-    let converted_temp = match parsed_input.1 {
-        TemperatureUnit::F => (f_to_c(parsed_input.0), TemperatureUnit::C),
-        TemperatureUnit::C => (c_to_f(parsed_input.0), TemperatureUnit::F)
+    let converted_temp: TemperatureWithUnit = match parsed_input.unit {
+        TemperatureUnit::F => TemperatureWithUnit { temp: f_to_c(parsed_input.temp), unit: TemperatureUnit::C },
+        TemperatureUnit::C => TemperatureWithUnit { temp: c_to_f(parsed_input.temp), unit: TemperatureUnit::F }
     };
 
-    println!("Converted temperature: {}{:?}", converted_temp.0, converted_temp.1)
+    println!("Converted temperature: {}{:?}", converted_temp.temp, converted_temp.unit)
 }
 
 fn f_to_c(f: i32) -> i32 {
@@ -46,7 +42,18 @@ fn c_to_f(c: i32) -> i32 {
     (c * 9 / 5) + 32
 }
 
-fn parse_input(input: &str) -> Result<(i32, TemperatureUnit), &str> {
+#[derive(Debug)]
+enum TemperatureUnit {
+    F,
+    C,
+}
+
+struct TemperatureWithUnit {
+    temp: i32,
+    unit: TemperatureUnit,
+}
+
+fn parse_input(input: &str) -> Result<TemperatureWithUnit, &str> {
     lazy_static! {
         static ref TEMPERATE_INPUT_REGEX: Regex = Regex::new(
             r"^(\-?\d+)(F|C)$"
@@ -63,7 +70,7 @@ fn parse_input(input: &str) -> Result<(i32, TemperatureUnit), &str> {
                 // should I just panic here? Regex validation should already account for this
                 Err(_) => return Err("Failed to parse the temperature component.")
             };
-            let unit: char = match  caps.get(2).unwrap().as_str().parse() {
+            let unit: char = match caps.get(2).unwrap().as_str().parse() {
                 Ok(u) => u,
                 Err(_) => return Err("Failed to parse the unit component.")
             };
@@ -74,7 +81,10 @@ fn parse_input(input: &str) -> Result<(i32, TemperatureUnit), &str> {
                 _ => return Err("Invalid temperature unit.")
             };
 
-            Ok((temperature, converted_unit))
+            Ok(TemperatureWithUnit {
+                temp: temperature,
+                unit: converted_unit,
+            })
         }
     }
 }
